@@ -46,13 +46,6 @@ This model captures first-order effects only. It does not model currency fluctua
 
 Open `index.html` in any modern browser. No build step required.
 
-## Deploying to GitHub Pages
-
-1. Push this folder to a GitHub repository
-2. Go to Settings > Pages
-3. Set source to the branch containing `index.html`
-4. The simulator will be live at `https://<username>.github.io/<repo-name>/`
-
 ## Tech Stack
 
 - React 18 (CDN)
