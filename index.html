@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tariff Shock Propagation Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-dark: #1e3a5f;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --navy: #1e40af;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+    }
+
+    .container { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    header { text-align: center; margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    header p { color: var(--text-muted); font-size: 0.95rem; max-width: 620px; margin: 0 auto; }
+
+    .methodology-note {
+      background: var(--surface); border-left: 3px solid var(--amber);
+      padding: 0.75rem 1rem; margin-top: 1rem; border-radius: 0 6px 6px 0;
+      font-size: 0.82rem; color: var(--text-muted); display: inline-block; text-align: left;
+    }
+
+    .grid { display: grid; grid-template-columns: 290px 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+    .panel { background: var(--surface); border-radius: 10px; padding: 1.5rem; border: 1px solid var(--border); }
+    .panel h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+    .slider-group { margin-bottom: 1.5rem; }
+    .slider-group:last-child { margin-bottom: 0; }
+    .slider-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+    .slider-label span:first-child { font-size: 0.9rem; font-weight: 500; }
+    .slider-value { font-size: 0.95rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+      background: var(--border); border-radius: 3px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 2px var(--accent);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+      cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 0 2px var(--accent);
+    }
+    .slider-range { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .chart-area { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .summary-sentence {
+      background: linear-gradient(135deg, var(--accent-dark), var(--surface));
+      border-radius: 10px; padding: 1.15rem 1.4rem; font-size: 1rem; line-height: 1.65;
+      border: 1px solid var(--accent);
+    }
+    .summary-sentence strong { color: var(--accent); }
+    .edge-note { color: var(--green); }
+
+    .stage-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; }
+    @media (max-width: 768px) { .stage-cards { grid-template-columns: repeat(2, 1fr); } }
+
+    .stage-card {
+      background: var(--surface); border-radius: 8px; padding: 0.85rem 0.5rem; text-align: center;
+      border: 1px solid var(--border); transition: border-color 0.2s;
+    }
+    .stage-card:hover { border-color: var(--accent); }
+    .stage-num { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .stage-name { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .stage-val { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .c1 { color: #60a5fa; } .c2 { color: #34d399; } .c3 { color: #fbbf24; } .c4 { color: #f472b6; }
+
+    .ecosystem-box {
+      background: linear-gradient(135deg, #1a1a2e, var(--surface));
+      border-radius: 10px; padding: 1.25rem; border: 1px solid #f472b6; text-align: center;
+    }
+    .eco-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .eco-value { font-size: 2rem; font-weight: 800; color: #f472b6; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .eco-usd { font-size: 0.88rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .eco-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; }
+    .eco-rate { font-size: 0.7rem; color: #64748b; margin-top: 0.3rem; }
+
+    .chart-box { background: var(--surface); border-radius: 10px; padding: 1.25rem; border: 1px solid var(--border); }
+    .chart-box h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.75rem; }
+
+    .assumptions-btn {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+      padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; width: 100%; text-align: left;
+      font-size: 0.85rem; font-family: inherit; display: flex; justify-content: space-between; align-items: center;
+      transition: background 0.2s;
+    }
+    .assumptions-btn:hover { background: var(--surface-hover); }
+    #assumptions-body {
+      background: var(--surface); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 8px 8px; padding: 1.15rem; margin-top: -8px; display: none;
+    }
+    #assumptions-body.open { display: block; }
+
+    .a-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .a-table th {
+      text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border);
+      color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .a-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    .a-table tr:last-child td { border-bottom: none; }
+    .conf-high { color: var(--green); } .conf-medium { color: var(--amber); } .conf-low { color: var(--red); }
+
+    footer {
+      text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+      color: var(--text-muted); font-size: 0.8rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Tariff Shock Propagation Simulator</h1>
+      <p>How US semiconductor tariff increases compound through four supply chain stages into higher per-merchant deployment costs for Pakistani fintechs.</p>
+      <div class="methodology-note">This model captures first-order effects only and is pedagogical, not predictive. All parameters are user-adjustable &mdash; plug in better data if you have it.</div>
+    </header>
+
+    <div class="grid">
+      <!-- Controls -->
+      <div>
+        <div class="panel">
+          <h2>Model Controls</h2>
+          <div class="slider-group">
+            <div class="slider-label"><span>US Chip Tariff</span><span class="slider-value" id="lbl-tariff">25%</span></div>
+            <input type="range" id="sl-tariff" min="0" max="50" step="1" value="25" />
+            <div class="slider-range"><span>0%</span><span>50%</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label"><span>Local Assembly %</span><span class="slider-value" id="lbl-local">5%</span></div>
+            <input type="range" id="sl-local" min="0" max="100" step="1" value="5" />
+            <div class="slider-range"><span>0%</span><span>100%</span></div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-label"><span>Fintech Subsidy</span><span class="slider-value" id="lbl-subsidy">50%</span></div>
+            <input type="range" id="sl-subsidy" min="0" max="100" step="1" value="50" />
+            <div class="slider-range"><span>0%</span><span>100%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart area -->
+      <div class="chart-area">
+        <div class="summary-sentence" id="summary"></div>
+
+        <div class="stage-cards">
+          <div class="stage-card"><div class="stage-num">Stage 1</div><div class="stage-name">Component Import</div><div class="stage-val c1" id="v-comp">$0.00</div></div>
+          <div class="stage-card"><div class="stage-num">Stage 2</div><div class="stage-name">Terminal Assembly</div><div class="stage-val c2" id="v-term">$0.00</div></div>
+          <div class="stage-card"><div class="stage-num">Stage 3</div><div class="stage-name">Merchant Deploy</div><div class="stage-val c3" id="v-deploy">$0.00</div></div>
+          <div class="stage-card"><div class="stage-num">Stage 4</div><div class="stage-name">Fintech CAC</div><div class="stage-val c4" id="v-cac">$0.00</div></div>
+        </div>
+
+        <!-- PKR Ecosystem Impact -->
+        <div class="ecosystem-box">
+          <div class="eco-label">Total Impact on Pakistani Fintech Ecosystem</div>
+          <div class="eco-value" id="eco-pkr"></div>
+          <div class="eco-usd" id="eco-usd"></div>
+          <div class="eco-sub" id="eco-sub"></div>
+          <div class="eco-rate" id="eco-rate"></div>
+        </div>
+
+        <!-- Waterfall chart -->
+        <div class="chart-box">
+          <h2>Cost Propagation Waterfall</h2>
+          <svg id="waterfall" viewBox="0 0 580 300" style="width:100%;height:auto;max-height:320px;"></svg>
+        </div>
+
+        <!-- Assumptions -->
+        <div>
+          <button class="assumptions-btn" id="assumptions-toggle">
+            <span>Assumptions &amp; Sources (8 parameters)</span><span id="assumptions-arrow">&#x25BC;</span>
+          </button>
+          <div id="assumptions-body">
+            <table class="a-table">
+              <thead><tr><th>Parameter</th><th>Default</th><th>Current</th><th>Source</th><th>Confidence</th></tr></thead>
+              <tbody id="a-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Tariff Shock Propagation Simulator &mdash; Built by <a href="#">Fawad Liaqat</a> &mdash; March 2026</p>
+      <p style="margin-top:0.25rem">Model uses SBP Payment Systems Review FY25 data. Market size: 195,849 POS terminals.</p>
+    </footer>
+  </div>
+
+  <script>
+    // ── Constants ──
+    var B = 250, C = 0.47, D_IMPORT = 0.15, D_DEPLOY = 0.30;
+    var POS_COUNT = 195849;
+    var USD_TO_PKR = 278.50;
+
+    var ASSUMPTIONS = [
+      { param: "US Chip Tariff (T)", def: "25%", source: "US ITC HTS Chapter 85 (codes 8542, 8534, 8471)", conf: "High", key: "tariff" },
+      { param: "Component Cost Ratio (C)", def: "47%", source: "Industry analyst consensus \u2014 semiconductor % of electronics mfg cost", conf: "Medium", key: null },
+      { param: "Base Terminal Cost (B)", def: "$250", source: "Verifone/Ingenico investor materials, industry estimates", conf: "Medium", key: null },
+      { param: "Local Assembly % (L)", def: "5%", source: "Stated assumption \u2014 Pakistan has minimal domestic POS assembly", conf: "Low", key: "local" },
+      { param: "Pakistan Import Duty (D\u1d62\u2098\u209a\u2092\u2099\u209c)", def: "15%", source: "FBR general electronics band (HS 8470\u20138473). POS-specific rate unconfirmed.", conf: "Low", key: null },
+      { param: "Deployment Overhead (D_deploy)", def: "30%", source: "Stated assumption \u2014 installation, training, connectivity per merchant", conf: "Low", key: null },
+      { param: "Fintech Subsidy (S)", def: "50%", source: "Stated assumption \u2014 fintechs subsidize merchant hardware for adoption", conf: "Low", key: "subsidy" },
+      { param: "POS Terminal Count (PK)", def: "195,849", source: "SBP Payment Systems Review FY25", conf: "High", key: null }
+    ];
+
+    // ── DOM refs ──
+    var slTariff  = document.getElementById("sl-tariff");
+    var slLocal   = document.getElementById("sl-local");
+    var slSubsidy = document.getElementById("sl-subsidy");
+    var lblTariff = document.getElementById("lbl-tariff");
+    var lblLocal  = document.getElementById("lbl-local");
+    var lblSubsidy= document.getElementById("lbl-subsidy");
+    var elSummary = document.getElementById("summary");
+    var elComp    = document.getElementById("v-comp");
+    var elTerm    = document.getElementById("v-term");
+    var elDeploy  = document.getElementById("v-deploy");
+    var elCac     = document.getElementById("v-cac");
+    var elEcoPkr  = document.getElementById("eco-pkr");
+    var elEcoUsd  = document.getElementById("eco-usd");
+    var elEcoSub  = document.getElementById("eco-sub");
+    var elEcoRate = document.getElementById("eco-rate");
+    var svgEl     = document.getElementById("waterfall");
+
+    // ── Assumptions table ──
+    var aTbody = document.getElementById("a-tbody");
+    ASSUMPTIONS.forEach(function(a) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td style="font-weight:500">' + a.param + '</td>' +
+        '<td>' + a.def + '</td>' +
+        '<td class="a-current" data-key="' + (a.key || '') + '">' + a.def + '</td>' +
+        '<td style="color:#94a3b8;font-size:0.76rem">' + a.source + '</td>' +
+        '<td><span class="conf-' + a.conf.toLowerCase() + '">' + a.conf + '</span></td>';
+      aTbody.appendChild(tr);
+    });
+
+    // ── Assumptions toggle ──
+    var assBody = document.getElementById("assumptions-body");
+    var assArrow = document.getElementById("assumptions-arrow");
+    document.getElementById("assumptions-toggle").addEventListener("click", function() {
+      var isOpen = assBody.classList.toggle("open");
+      assArrow.innerHTML = isOpen ? "&#x25B2;" : "&#x25BC;";
+    });
+
+    // ── Format helpers ──
+    function fmt(n) { return "$" + n.toFixed(2); }
+    function fmtInt(n) { return "$" + Math.round(n).toLocaleString(); }
+    function fmtPkr(val) {
+      if (val >= 1e9) return "\u20A8 " + (val / 1e9).toFixed(2) + " billion";
+      if (val >= 1e7) return "\u20A8 " + (val / 1e7).toFixed(2) + " crore";
+      if (val >= 1e6) return "\u20A8 " + (val / 1e6).toFixed(1) + " million";
+      if (val >= 1e3) return "\u20A8 " + Math.round(val).toLocaleString();
+      return "\u20A8 " + val.toFixed(0);
+    }
+
+    // ── SVG Waterfall ──
+    function drawWaterfall(stages) {
+      var W = 580, H = 300;
+      var mt = 35, mb = 58, ml = 55, mr = 20;
+      var cw = W - ml - mr, ch = H - mt - mb;
+      var colors = ["#60a5fa", "#34d399", "#fbbf24", "#1e40af"];
+      var labels = [["Component","Import"],["Terminal","Assembly"],["Merchant","Deploy"],["Fintech","CAC"]];
+
+      var maxVal = 1;
+      stages.forEach(function(s) { var top = s.base + s.delta; if (top > maxVal) maxVal = top; });
+      var yMax = Math.ceil(maxVal / 10) * 10 || 10;
+
+      var barGap = cw / 4;
+      var barW = barGap * 0.55;
+      function yPos(v) { return ch - (v / yMax) * ch; }
+
+      var svg = "";
+      // Grid + Y labels
+      for (var i = 0; i <= 5; i++) {
+        var tick = Math.round((yMax / 5) * i);
+        var y = mt + yPos(tick);
+        svg += '<line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y+'" y2="'+y+'" stroke="#334155" stroke-dasharray="3,3"/>';
+        svg += '<text x="'+(ml-8)+'" y="'+(y+4)+'" fill="#94a3b8" font-size="11" text-anchor="end">$'+tick+'</text>';
+      }
+
+      // Bars + labels
+      stages.forEach(function(s, idx) {
+        var x = ml + idx * barGap + (barGap - barW) / 2;
+        var barTop = mt + yPos(s.base + s.delta);
+        var barH = (s.delta / yMax) * ch;
+        if (barH < 0) barH = 0;
+
+        svg += '<rect x="'+x+'" y="'+barTop+'" width="'+barW+'" height="'+barH+'" fill="'+colors[idx]+'" rx="3" ry="3"/>';
+
+        // Connector line (stages 0->1, 1->2 only)
+        if (idx < 2) {
+          var connY = mt + yPos(s.base + s.delta);
+          svg += '<line x1="'+(x+barW)+'" x2="'+(x+barGap)+'" y1="'+connY+'" y2="'+connY+'" stroke="#475569" stroke-dasharray="2,2" stroke-width="1"/>';
+        }
+
+        // Value label
+        if (s.delta > 0.005) {
+          svg += '<text x="'+(x+barW/2)+'" y="'+(barTop-8)+'" fill="#f1f5f9" font-size="12" font-weight="600" text-anchor="middle">$'+s.delta.toFixed(2)+'</text>';
+        }
+
+        // X labels
+        var lx = ml + idx * barGap + barGap / 2;
+        svg += '<text x="'+lx+'" y="'+(H-mb+18)+'" fill="#94a3b8" font-size="11" text-anchor="middle">'+labels[idx][0]+'</text>';
+        svg += '<text x="'+lx+'" y="'+(H-mb+32)+'" fill="#94a3b8" font-size="11" text-anchor="middle">'+labels[idx][1]+'</text>';
+      });
+
+      svgEl.innerHTML = svg;
+    }
+
+    // ── Core update ──
+    function update() {
+      var tariff = parseInt(slTariff.value);
+      var local  = parseInt(slLocal.value);
+      var sub    = parseInt(slSubsidy.value);
+
+      lblTariff.textContent  = tariff + "%";
+      lblLocal.textContent   = local + "%";
+      lblSubsidy.textContent = sub + "%";
+
+      var T = tariff / 100;
+      var L = local / 100;
+      var S = sub / 100;
+
+      // Four-stage propagation
+      var dComp   = B * C * T * (1 - L);
+      var dTerm   = dComp * (1 + D_IMPORT);
+      var dDeploy = dTerm * (1 + D_DEPLOY);
+      var dCAC    = dDeploy * (1 - S);
+
+      // Update stage cards
+      elComp.textContent   = fmt(dComp);
+      elTerm.textContent   = fmt(dTerm);
+      elDeploy.textContent = fmt(dDeploy);
+      elCac.textContent    = fmt(dCAC);
+
+      // PKR conversions
+      var cacPkr = dCAC * USD_TO_PKR;
+      var totalUsd = dCAC * POS_COUNT;
+      var totalPkr = cacPkr * POS_COUNT;
+
+      // Ecosystem impact box
+      elEcoPkr.textContent = fmtPkr(totalPkr);
+      elEcoUsd.textContent = "(" + fmtInt(totalUsd) + " USD)";
+      elEcoSub.textContent = "Across " + POS_COUNT.toLocaleString() + " POS terminals at \u20A8 " + Math.round(cacPkr).toLocaleString() + " additional cost per merchant";
+      elEcoRate.textContent = "Exchange rate: 1 USD = \u20A8 " + USD_TO_PKR.toFixed(2) + " (approx. March 2026)";
+
+      // Summary sentence
+      var baseMerchant = B * (1 + D_DEPLOY);
+      var pct = baseMerchant > 0 ? ((dCAC / baseMerchant) * 100).toFixed(1) : "0.0";
+
+      var edge = "";
+      if (tariff === 0) edge = ' <span style="color:#94a3b8">(Zero tariff = zero impact.)</span>';
+      if (local === 100) edge = ' <span class="edge-note">Full local assembly eliminates tariff exposure.</span>';
+      if (sub === 100) edge = ' <span class="edge-note">Full subsidy absorbs all merchant-facing cost.</span>';
+
+      elSummary.innerHTML = 'A <strong>' + tariff + '%</strong> tariff increase results in a <strong>' + pct + '%</strong> increase in per-merchant deployment cost, implying an additional <strong>' + fmtInt(dCAC) + '</strong> (<strong>\u20A8 ' + Math.round(cacPkr).toLocaleString() + '</strong>) per merchant for Pakistani fintechs.' + edge;
+
+      // Waterfall chart
+      drawWaterfall([
+        { base: 0,     delta: dComp },
+        { base: dComp, delta: dTerm - dComp },
+        { base: dTerm, delta: dDeploy - dTerm },
+        { base: 0,     delta: dCAC }
+      ]);
+
+      // Update assumption table current values
+      var cells = document.querySelectorAll(".a-current");
+      cells.forEach(function(td) {
+        var k = td.getAttribute("data-key");
+        if (k === "tariff")  td.textContent = tariff + "%";
+        if (k === "local")   td.textContent = local + "%";
+        if (k === "subsidy") td.textContent = sub + "%";
+      });
+    }
+
+    // ── Event listeners ──
+    slTariff.addEventListener("input", update);
+    slLocal.addEventListener("input", update);
+    slSubsidy.addEventListener("input", update);
+
+    // ── Initial render ──
+    update();
+  </script>
+</body>
+</html>
