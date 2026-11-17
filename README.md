@@ -1,5 +1,8 @@
 # Tariff Shock Propagation Simulator
 
+> Archived. Not updated since March 2026.
+
+
 An interactive model that traces how US semiconductor tariff increases compound through four supply chain stages into higher per-merchant POS terminal deployment costs for Pakistani fintechs.
 
 ## What This Model Does
